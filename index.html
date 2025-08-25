@@ -1,0 +1,376 @@
+
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A Piramis Kódja: Interaktív Elemzés</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']]
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Desert Harmony -->
+    <!-- Application Structure Plan: A thematic, single-page scrolling experience. It starts with a captivating intro, moves to the fundamental dimensions with an an interactive unit converter. Then, it dedicates sections to exploring the Pi and Phi relationships, each with explanations. The centerpiece is a dynamic, interactive canvas where users can toggle between visualizations of the Pi and Phi calculations, reinforcing learning. This structure guides the user from basic facts to complex concepts in a logical flow, making the information more digestible and engaging than a static report. -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: Base & Height dimensions -> Goal: Inform -> Viz: Dynamic stat cards (HTML/Tailwind) -> Interaction: Toggle switch for units (Cubits/Meters) -> Justification: Provides immediate scale context and user control.
+        - Report Info: Pi relationship (Perimeter/Height ≈ 2π) -> Goal: Explain ratio -> Viz: Interactive Chart.js canvas -> Interaction: Button click updates canvas to highlight relevant pyramid parts (base, height) and shows calculation -> Justification: Focuses user attention on a single, powerful interactive element.
+        - Report Info: Phi relationship (Slant Height/Half-Base ≈ φ) -> Goal: Explain geometric ratio -> Viz: Same interactive Chart.js canvas -> Interaction: Button click highlights slant height and half-base -> Justification: Creates a cohesive experience by reusing the central visualization tool.
+        - Report Info: Clarification on φ² vs π discrepancy -> Goal: Correct & Inform -> Viz: Clear textual explanation -> Interaction: None -> Justification: Direct text is best for factual clarification.
+        - Library/Method: Chart.js for all canvas-based visualizations. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .active-nav {
+            color: #D97706; /* amber-600 */
+            border-bottom-color: #D97706;
+        }
+        .inactive-nav {
+            color: #57534E; /* stone-600 */
+            border-bottom-color: transparent;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+    </style>
+</head>
+<body class="bg-stone-50 text-stone-800">
+
+    <header class="bg-stone-100 shadow-md sticky top-0 z-10">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <h1 class="text-xl md:text-2xl font-bold text-amber-700">A Piramis Kódja</h1>
+            <div class="flex space-x-4 md:space-x-8 text-sm md:text-base">
+                <a href="#alapmeretek" class="font-semibold hover:text-amber-600 transition-colors">Méretek</a>
+                <a href="#pi-kapcsolat" class="font-semibold hover:text-amber-600 transition-colors">A $\pi$ titka</a>
+                <a href="#phi-kapcsolat" class="font-semibold hover:text-amber-600 transition-colors">Az Aranymetszés</a>
+                <a href="#felfedezo" class="font-semibold hover:text-amber-600 transition-colors">Felfedező</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto p-4 md:p-8">
+
+        <section id="intro" class="text-center my-12 md:my-16">
+            <h2 class="text-3xl md:text-5xl font-bold text-stone-900 mb-4">Fedezze fel a Gízai Nagy Piramis rejtett matematikáját!</h2>
+            <p class="max-w-3xl mx-auto text-base md:text-lg text-stone-600">
+                A Gízai nagy piramis nem csupán egy lenyűgöző ókori építmény, hanem egy matematikai csoda is. Ez az interaktív alkalmazás bemutatja, hogyan rejtették el benne a $\pi$ (pi) és a $\phi$ (aranymetszés) arányait, olyan precizitással, ami évezredekkel megelőzte korát.
+            </p>
+        </section>
+
+        <section id="alapmeretek" class="my-12 md:my-20 scroll-mt-20">
+            <h3 class="text-2xl md:text-3xl font-bold text-center mb-8 text-stone-900">Az Alapméretek</h3>
+            <div class="bg-white p-6 rounded-lg shadow-lg max-w-4xl mx-auto">
+                <p class="text-stone-600 mb-6 text-center">A piramis méreteit a korabeli egyiptomi könyökben adták meg. Az alábbi interaktív kártyákon megtekintheti az alapvető méreteket, és átváltja őket méterbe, hogy jobban érzékelje az építmény monumentalitását.</p>
+                
+                <div class="flex justify-center items-center mb-6">
+                    <span class="text-stone-700 font-semibold mr-3">Könyök</span>
+                    <label for="unit-toggle" class="inline-flex relative items-center cursor-pointer">
+                        <input type="checkbox" value="" id="unit-toggle" class="sr-only peer">
+                        <div class="w-11 h-6 bg-amber-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                    <span class="text-stone-700 font-semibold ml-3">Méter</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-center">
+                    <div class="bg-stone-100 p-6 rounded-lg">
+                        <h4 class="text-lg font-semibold text-amber-800">Alaphossz</h4>
+                        <p id="base-length" class="text-3xl font-bold text-stone-900 mt-2">440</p>
+                        <p id="base-unit" class="text-stone-500">egyiptomi könyök</p>
+                    </div>
+                    <div class="bg-stone-100 p-6 rounded-lg">
+                        <h4 class="text-lg font-semibold text-amber-800">Magasság</h4>
+                        <p id="height-value" class="text-3xl font-bold text-stone-900 mt-2">280</p>
+                        <p id="height-unit" class="text-stone-500">egyiptomi könyök</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="pi-kapcsolat" class="my-12 md:my-20 scroll-mt-20">
+            <h3 class="text-2xl md:text-3xl font-bold text-center mb-8 text-stone-900">A $\pi$ titka</h3>
+            <div class="bg-white p-6 rounded-lg shadow-lg max-w-4xl mx-auto">
+                 <p class="text-stone-600 mb-6">Az egyik legmegdöbbentőbb felfedezés a piramis és a $\pi$ (pi) közötti kapcsolat. Ha a piramis alapjának kerületét elosztjuk a magasságával, egy olyan számot kapunk, ami rendkívül közel áll a $\pi$ kétszereséhez. Ez arra utal, hogy az építők ismerték és tudatosan alkalmazták ezt a matematikai állandót.</p>
+                <div class="bg-amber-50 p-4 rounded-lg text-center">
+                    <p class="text-stone-700 text-lg">
+                        $$\frac{\text{Kerület}}{\text{Magasság}} = \frac{1760 \text{ könyök}}{280 \text{ könyök}} \approx 6.2857$$
+                    </p>
+                    <p class="text-amber-800 font-bold text-xl mt-2">
+                        $$2 \times \pi \approx 6.2832$$
+                    </p>
+                </div>
+                 <p class="text-stone-600 mt-6">Egy másik elmélet szerint maga az egyiptomi könyök mértékegysége is a $\pi$-ből származtatható. A kb. 52,36 cm-es hosszúság meglepően közel áll a $\frac{\pi}{6}$ értékéhez, ami azt sugallja, hogy a teljes mértékrendszerük egy kifinomult matematikai alapra épült.</p>
+            </div>
+        </section>
+
+        <section id="phi-kapcsolat" class="my-12 md:my-20 scroll-mt-20">
+            <h3 class="text-2xl md:text-3xl font-bold text-center mb-8 text-stone-900">Az Aranymetszés ($\phi$)</h3>
+            <div class="bg-white p-6 rounded-lg shadow-lg max-w-4xl mx-auto">
+                <p class="text-stone-600 mb-6">A piramis nemcsak a $\pi$-t, hanem az aranymetszés arányát, a $\phi$ (phi) $\approx 1.618$ értéket is magában rejti. Ez az arány a piramis oldallapjának magassága (az apotéma) és az alapél felének viszonyában jelenik meg a legpontosabban. Ez a "szent geometria" egy olyan szintjét mutatja, amely messze túlmutat a puszta építkezésen.</p>
+                <div class="bg-blue-50 p-4 rounded-lg text-center">
+                    <p class="text-stone-700 text-lg">
+                        $$\frac{\text{Oldallap magassága}}{\text{Alapél fele}} = \frac{356.09 \text{ könyök}}{220 \text{ könyök}} \approx 1.6186$$
+                    </p>
+                    <p class="text-blue-800 font-bold text-xl mt-2">
+                        $$\phi \approx 1.6180$$
+                    </p>
+                </div>
+                <div class="mt-6 bg-stone-100 p-4 rounded-lg">
+                    <h4 class="font-semibold text-stone-800">Egy fontos pontosítás</h4>
+                    <p class="text-stone-600 mt-2 text-sm">Az eredeti forrásszöveg tévesen állította, hogy a fél kerület és a magasság aránya az aranymetszés négyzetét ($\phi^2$) adja. A számításaink kimutatták, hogy ez az arány valójában a $\pi$-hez áll közel ($\approx 3.1428$). Az aranymetszés a fent bemutatott oldallap-geometriában található meg.</p>
+                </div>
+            </div>
+        </section>
+        
+        <section id="felfedezo" class="my-12 md:my-20 scroll-mt-20">
+            <h3 class="text-2xl md:text-3xl font-bold text-center mb-8 text-stone-900">Interaktív Felfedező</h3>
+            <div class="bg-white p-6 rounded-lg shadow-lg max-w-5xl mx-auto">
+                <p class="text-stone-600 mb-6 text-center">Használja a gombokat a piramis keresztmetszetének vizualizációján, hogy kiemelje a különböző matematikai összefüggéseket. Figyelje meg, hogyan változnak a kiemelt vonalak és a magyarázó szöveg!</p>
+                <div class="flex justify-center items-center space-x-4 mb-6">
+                    <button id="show-pi" class="py-2 px-4 bg-amber-500 text-white font-semibold rounded-lg shadow-md hover:bg-amber-600 transition-colors active-nav border-b-2">$\pi$ kapcsolat</button>
+                    <button id="show-phi" class="py-2 px-4 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 transition-colors inactive-nav border-b-2">$\phi$ kapcsolat</button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                    <div class="chart-container">
+                        <canvas id="pyramidChart"></canvas>
+                    </div>
+                    <div id="explanation-panel" class="bg-stone-100 p-4 rounded-lg min-h-[250px]">
+                        <h4 id="explanation-title" class="text-xl font-bold text-stone-800 mb-2"></h4>
+                        <p id="explanation-text" class="text-stone-600"></p>
+                        <div id="explanation-formula" class="mt-4 text-center bg-white p-2 rounded"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-stone-800 text-stone-300 py-6 mt-16">
+        <div class="container mx-auto text-center">
+            <p>&copy; 2024 A Piramis Kódja - Interaktív Elemzés</p>
+            <p class="text-sm text-stone-400 mt-2">Készült a Gízai nagy piramis matematikai elemzése alapján.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const CUBIT_IN_METERS = 0.5236;
+            const BASE_CUBITS = 440;
+            const HEIGHT_CUBITS = 280;
+
+            const unitToggle = document.getElementById('unit-toggle');
+            const baseLengthEl = document.getElementById('base-length');
+            const baseUnitEl = document.getElementById('base-unit');
+            const heightValueEl = document.getElementById('height-value');
+            const heightUnitEl = document.getElementById('height-unit');
+
+            function updateDimensions(isMeters) {
+                if (isMeters) {
+                    baseLengthEl.textContent = (BASE_CUBITS * CUBIT_IN_METERS).toFixed(2);
+                    baseUnitEl.textContent = 'méter';
+                    heightValueEl.textContent = (HEIGHT_CUBITS * CUBIT_IN_METERS).toFixed(2);
+                    heightUnitEl.textContent = 'méter';
+                } else {
+                    baseLengthEl.textContent = BASE_CUBITS;
+                    baseUnitEl.textContent = 'egyiptomi könyök';
+                    heightValueEl.textContent = HEIGHT_CUBITS;
+                    heightUnitEl.textContent = 'egyiptomi könyök';
+                }
+            }
+
+            unitToggle.addEventListener('change', (e) => {
+                updateDimensions(e.target.checked);
+            });
+            
+            updateDimensions(false);
+
+            const ctx = document.getElementById('pyramidChart').getContext('2d');
+            let pyramidChart;
+
+            const explanations = {
+                pi: {
+                    title: 'A Pi (\\(\\pi\\)) kapcsolata',
+                    text: 'Ez az arány a piramis teljes kerületét veti össze a magasságával. A kerület (1760 könyök) és a magasság (280 könyök) hányadosa a $\\pi$ értékének kétszeresét adja, ami a kör és az átmérő közötti alapvető kapcsolatra utal.',
+                    formula: '\\frac{1760}{280} \\approx 6.2857 \\approx 2 \\times \\pi'
+                },
+                phi: {
+                    title: 'Az Aranymetszés (\\(\\phi\\))',
+                    text: 'Az aranymetszés a piramis keresztmetszetében található. Az oldallap magasságának (apotéma) és az alapél felének aránya adja ki a $\\phi \\approx 1.618$ értéket, ami a természetben és a művészetben is gyakran előforduló arány.',
+                    formula: '\\frac{356.09}{220} \\approx 1.6186 \\approx \\phi'
+                }
+            };
+            
+            const explanationTitle = document.getElementById('explanation-title');
+            const explanationText = document.getElementById('explanation-text');
+            const explanationFormula = document.getElementById('explanation-formula');
+            
+            const showPiBtn = document.getElementById('show-pi');
+            const showPhiBtn = document.getElementById('show-phi');
+
+            function updateExplanation(type) {
+                const content = explanations[type];
+                explanationTitle.textContent = content.title;
+                explanationText.textContent = content.text;
+                explanationFormula.innerHTML = `$$${content.formula}$$`;
+                MathJax.typesetPromise([explanationFormula]);
+
+                if (type === 'pi') {
+                    showPiBtn.classList.add('active-nav');
+                    showPiBtn.classList.remove('inactive-nav');
+                    showPhiBtn.classList.add('inactive-nav');
+                    showPhiBtn.classList.remove('active-nav');
+                } else {
+                    showPhiBtn.classList.add('active-nav');
+                    showPhiBtn.classList.remove('inactive-nav');
+                    showPiBtn.classList.add('inactive-nav');
+                    showPiBtn.classList.remove('active-nav');
+                }
+            }
+
+            const baseData = {
+                labels: ['-Alap fele', 'Közép', 'Alap fele'],
+                datasets: [{
+                    data: [
+                        {x: -220, y: 0},
+                        {x: 0, y: 280},
+                        {x: 220, y: 0},
+                        {x: -220, y: 0}
+                    ],
+                    borderColor: '#A8A29E', // stone-400
+                    borderWidth: 2,
+                    fill: true,
+                    backgroundColor: 'rgba(214, 211, 209, 0.3)', // stone-300 with alpha
+                    showLine: true,
+                    pointRadius: 0
+                }]
+            };
+
+            function drawChart(highlightType) {
+                if (pyramidChart) {
+                    pyramidChart.destroy();
+                }
+
+                const datasets = JSON.parse(JSON.stringify(baseData.datasets));
+
+                if (highlightType === 'pi') {
+                    datasets.push({ // Base highlight
+                        data: [{x: -220, y: 0}, {x: 220, y: 0}],
+                        borderColor: '#F59E0B', // amber-500
+                        borderWidth: 4,
+                        showLine: true,
+                        pointRadius: 0,
+                        label: 'Alap (440)'
+                    });
+                     datasets.push({ // Height highlight
+                        data: [{x: 0, y: 0}, {x: 0, y: 280}],
+                        borderColor: '#F59E0B',
+                        borderWidth: 4,
+                        borderDash: [5, 5],
+                        showLine: true,
+                        pointRadius: 0,
+                        label: 'Magasság (280)'
+                    });
+                } else if (highlightType === 'phi') {
+                    datasets.push({ // Slant height highlight
+                        data: [{x: 0, y: 280}, {x: 220, y: 0}],
+                        borderColor: '#3B82F6', // blue-500
+                        borderWidth: 4,
+                        showLine: true,
+                        pointRadius: 0,
+                        label: 'Oldallap magassága (~356.1)'
+                    });
+                    datasets.push({ // Half-base highlight
+                        data: [{x: 0, y: 0}, {x: 220, y: 0}],
+                        borderColor: '#3B82F6',
+                        borderWidth: 4,
+                        borderDash: [5, 5],
+                        showLine: true,
+                        pointRadius: 0,
+                        label: 'Alap fele (220)'
+                    });
+                }
+
+                pyramidChart = new Chart(ctx, {
+                    type: 'scatter',
+                    data: { datasets: datasets },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: {
+                                type: 'linear',
+                                position: 'bottom',
+                                min: -250,
+                                max: 250,
+                                display: false
+                            },
+                            y: {
+                                min: -20,
+                                max: 300,
+                                display: false
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'bottom',
+                                labels: {
+                                    color: '#44403C' // stone-700
+                                }
+                            },
+                            tooltip: {
+                                enabled: false
+                            }
+                        },
+                        animation: {
+                            duration: 500
+                        }
+                    }
+                });
+            }
+            
+            showPiBtn.addEventListener('click', () => {
+                drawChart('pi');
+                updateExplanation('pi');
+            });
+
+            showPhiBtn.addEventListener('click', () => {
+                drawChart('phi');
+                updateExplanation('phi');
+            });
+            
+            drawChart('pi');
+            updateExplanation('pi');
+
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    document.querySelector(this.getAttribute('href')).scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                });
+            });
+        });
+    </script>
+</body>
+</html>
